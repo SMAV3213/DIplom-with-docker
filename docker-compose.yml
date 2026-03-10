@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   # SQL Server Database
-  sqlserver:
+  ssqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: resort-booking-db
     environment:
@@ -11,6 +11,8 @@ services:
       MSSQL_PID: "Developer"
     ports:
       - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
     networks:
       - resort-network
     restart: unless-stopped
@@ -21,12 +23,14 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: resort-booking-api
-
     expose:
       - "8080"
+    volumes:
+      - uploads-data:/app/wwwroot/uploads
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: "http://+:8080"
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
       ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=ResortBookingDb;User Id=sa;Password=nq0/^t&[vD:6.HawN&%Ul!@#;TrustServerCertificate=True;Connection Timeout=60;"
       Jwt__Key: "MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCAfXlEBe2oVMikhkIqRJXsvNwH+T3kLiWyj6tQ/gCg7ng=="
       Jwt__Issuer: "ResortBooking.API"
@@ -39,22 +43,24 @@ services:
       - resort-network
     restart: unless-stopped
 
-  # Frontend
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: resort-booking-frontend
-    ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      VITE_API_URL: ""
-    depends_on:
-      - api
-    networks:
-      - resort-network
-    restart: unless-stopped
+    # Frontend
+    frontend:
+      build:
+        context: ./frontend
+        dockerfile: Dockerfile
+      container_name: resort-booking-frontend
+      ports:
+        - "80:80"
+      depends_on:
+        - api
+      networks:
+        - resort-network
+      restart: unless-stopped
+
+volumes:
+  sqlserver-data:
+  uploads-data:
+
 
 networks:
   resort-network:
